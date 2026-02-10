@@ -63,16 +63,26 @@ INSTALLED_APPS = [
 # =========================
 # CORS & CSRF (SESSION AUTH)
 # =========================
+# =========================
+# CORS & CSRF (SESSION AUTH)
+# =========================
 
-FRONTEND_URL = os.getenv("FRONTEND_URL")
-CSRF_TRUSTED_ORIGINS = [
-    "https://e-commercebackend-production-c3a7.up.railway.app",
-]
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://e-commerce-frontend-flax-chi.vercel.app"
+)
+
+CORS_ALLOW_ALL_ORIGINS = False
+
 CORS_ALLOWED_ORIGINS = [
-    "https://e-commerce-frontend-flax-chi.vercel.app",
+    FRONTEND_URL,
 ]
-CORS_ALLOW_ALL_ORIGINS = True
 
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL,
+]
 
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "None"
@@ -80,6 +90,7 @@ SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_HTTPONLY = False
+
 
 
 CORS_ALLOW_CREDENTIALS = True
