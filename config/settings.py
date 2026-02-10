@@ -15,6 +15,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 load_dotenv()
 
@@ -34,10 +36,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-dev-key-change-this")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG") == "True"
 
-ALLOWED_HOSTS = os.getenv(
-    "DJANGO_ALLOWED_HOSTS",
-    "*"
-).split(",")
+ALLOWED_HOSTS = ["*"]
+
 
 
 
@@ -70,18 +70,20 @@ CSRF_TRUSTED_ORIGINS = [
     "https://e-commercebackend-production-c3a7.up.railway.app",
 ]
 
+
 CORS_ALLOWED_ORIGINS = [
     "https://e-commercebackend-production-c3a7.up.railway.app",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = False
-SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
 
 
-CSRF_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
 
 
@@ -99,8 +101,8 @@ REST_FRAMEWORK = {
 
 
 JWT_COOKIE_NAME = "access_token"
-JWT_COOKIE_SAMESITE = "Lax"
-JWT_COOKIE_SECURE = False
+JWT_COOKIE_SAMESITE = "None"
+JWT_COOKIE_SECURE = True
 JWT_COOKIE_AGE_SECONDS = 60 * 60 * 24  # 1 day
 
 # Comma-separated usernames that should be treated as sellers (fallback for dev)
@@ -123,9 +125,10 @@ PASSWORD_HASHERS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 
     'corsheaders.middleware.CorsMiddleware',
+
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -133,6 +136,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 
 ROOT_URLCONF = 'config.urls'
