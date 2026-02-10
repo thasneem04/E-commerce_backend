@@ -66,19 +66,22 @@ INSTALLED_APPS = [
 
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
-CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [
+    "https://e-commercebackend-production-c3a7.up.railway.app",
+]
 
-CORS_ALLOWED_ORIGINS = [FRONTEND_URL] if FRONTEND_URL else []
+CORS_ALLOWED_ORIGINS = [
+    "https://e-commercebackend-production-c3a7.up.railway.app",
+]
 
-CSRF_TRUSTED_ORIGINS = [FRONTEND_URL] if FRONTEND_URL else []
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = "Lax"
 
 
-CSRF_COOKIE_SAMESITE = "None"
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 
 
@@ -96,8 +99,8 @@ REST_FRAMEWORK = {
 
 
 JWT_COOKIE_NAME = "access_token"
-JWT_COOKIE_SAMESITE = "None"
-JWT_COOKIE_SECURE = True
+JWT_COOKIE_SAMESITE = "Lax"
+JWT_COOKIE_SECURE = False
 JWT_COOKIE_AGE_SECONDS = 60 * 60 * 24  # 1 day
 
 # Comma-separated usernames that should be treated as sellers (fallback for dev)
