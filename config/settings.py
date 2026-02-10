@@ -33,6 +33,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DJANGO_DEBUG") == "True"
 
 ALLOWED_HOSTS = os.getenv(
+    "e-commercebackend-production-c3a7.up.railway.app",
     "DJANGO_ALLOWED_HOSTS",
     "localhost,127.0.0.1,.onrender.com"
 ).split(",")
