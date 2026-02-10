@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-from datetime import timedelta
+
 
 load_dotenv()
 
@@ -68,11 +68,18 @@ CORS_ALLOWED_ORIGINS = [FRONTEND_URL] if FRONTEND_URL else []
 
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL] if FRONTEND_URL else []
 
-SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = True  # dev only
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
 
-CSRF_COOKIE_SAMESITE = "Lax"
+
+CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False
+
+
+
+
 
 
 
@@ -81,13 +88,11 @@ REST_FRAMEWORK = {
         'products.authentication.CookieJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ),
 }
 
+
 JWT_COOKIE_NAME = "access_token"
-JWT_COOKIE_SAMESITE = "Lax"
+JWT_COOKIE_SAMESITE = "None"
 JWT_COOKIE_SECURE = True
 JWT_COOKIE_AGE_SECONDS = 60 * 60 * 24  # 1 day
 

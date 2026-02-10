@@ -26,7 +26,7 @@ from .serializers import (
 # AUTH APIs (SESSION BASED)
 
 
-@csrf_exempt
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -70,19 +70,18 @@ def login_view(request):
         status=status.HTTP_200_OK
     )
     response.set_cookie(
-        getattr(settings, "JWT_COOKIE_NAME", "access_token"),
-        access_token,
-        httponly=True,
-        secure=getattr(settings, "JWT_COOKIE_SECURE", False),
-        samesite=getattr(settings, "JWT_COOKIE_SAMESITE", "Lax"),
-        max_age=getattr(settings, "JWT_COOKIE_AGE_SECONDS", 60 * 60 * 24),
-        path="/",
+       "access_token",
+       access_token,
+       httponly=True,
+       secure=True,
+       samesite="None",
+       max_age=60 * 60 * 24,
+       path="/",
     )
     return response
 
 
 
-@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def logout_view(request):
@@ -91,15 +90,12 @@ def logout_view(request):
         {"message": "Logout successful"},
         status=status.HTTP_200_OK
     )
-    response.delete_cookie(
-        getattr(settings, "JWT_COOKIE_NAME", "access_token"),
-        path="/"
-    )
+    response.delete_cookie("access_token", path="/")
     return response
+    
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def me_view(request):
     guard = _ensure_seller(request)
     if guard:
@@ -114,9 +110,10 @@ def me_view(request):
     )
 
 
+
 # CUSTOMER AUTH & PROFILE
 
-@csrf_exempt
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def customer_register(request):
@@ -164,7 +161,7 @@ def customer_register(request):
     )
 
 
-@csrf_exempt
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def customer_login(request):
@@ -206,18 +203,19 @@ def customer_login(request):
     )
 
     response.set_cookie(
-        "access_token",
-        access_token,
-        httponly=True,
-        secure=False,
-        samesite="Lax",
-        max_age=60 * 60 * 24,
-        path="/",
+      getattr(settings, "JWT_COOKIE_NAME", "access_token"),
+      access_token,
+      httponly=True,
+      secure=True,
+      samesite="None",
+      max_age=getattr(settings, "JWT_COOKIE_AGE_SECONDS", 60 * 60 * 24),
+      path="/",
     )
+
     return response
 
 
-@csrf_exempt
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def customer_logout(request):
