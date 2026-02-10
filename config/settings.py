@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     'products.apps.ProductsConfig',
     'rest_framework',
     'corsheaders',
-    'rest_framework_simplejwt',
+    # 'rest_framework_simplejwt',
     
 ]
 
@@ -65,28 +65,23 @@ INSTALLED_APPS = [
 # =========================
 
 FRONTEND_URL = os.getenv("FRONTEND_URL")
-
 CSRF_TRUSTED_ORIGINS = [
     "https://e-commercebackend-production-c3a7.up.railway.app",
 ]
-
-
 CORS_ALLOWED_ORIGINS = [
     "https://e-commercebackend-production-c3a7.up.railway.app",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
 
-SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "None"
 
-
-CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_HTTPONLY = False
 
 
+CORS_ALLOW_CREDENTIALS = True
 
 
 
@@ -94,10 +89,10 @@ CSRF_COOKIE_HTTPONLY = False
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'products.authentication.CookieJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
 }
+
 
 
 JWT_COOKIE_NAME = "access_token"
@@ -125,9 +120,7 @@ PASSWORD_HASHERS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-
     'corsheaders.middleware.CorsMiddleware',
-
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -136,6 +129,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+
 
 
 
