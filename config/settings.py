@@ -86,6 +86,7 @@ CSRF_COOKIE_HTTPONLY = False
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'products.authentication.CookieJWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
 }
 
