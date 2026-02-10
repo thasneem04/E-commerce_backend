@@ -69,7 +69,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://e-commercebackend-production-c3a7.up.railway.app",
 ]
 CORS_ALLOWED_ORIGINS = [
-    "https://e-commercebackend-production-c3a7.up.railway.app",
+    "https://e-commerce-frontend-flax-chi.vercel.app",
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 
