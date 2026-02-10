@@ -71,6 +71,7 @@ CSRF_TRUSTED_ORIGINS = [
 CORS_ALLOWED_ORIGINS = [
     "https://e-commercebackend-production-c3a7.up.railway.app",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 SESSION_COOKIE_SECURE = True
