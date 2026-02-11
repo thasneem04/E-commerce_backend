@@ -195,7 +195,11 @@ STORAGES = {
         )
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if env_bool("USE_MANIFEST_STATIC", False)
+            else "whitenoise.storage.CompressedStaticFilesStorage"
+        )
     },
 }
 
