@@ -81,21 +81,9 @@ class ProductSerializer(serializers.ModelSerializer):
 class OfferSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField(source="product.id", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
-    original_price = serializers.DecimalField(
-        source="product.original_price",
-        max_digits=10,
-        decimal_places=2,
-        read_only=True
-    )
-    offer_price = serializers.DecimalField(
-        source="product.offer_price",
-        max_digits=10,
-        decimal_places=2,
-        allow_null=True,
-        read_only=True
-    )
-    
-    image = serializers.SerializerMethodField() 
+    original_price = serializers.SerializerMethodField()
+    offer_price = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Offer
@@ -119,6 +107,19 @@ class OfferSerializer(serializers.ModelSerializer):
                 # Do not fail the whole offers API because of one broken image reference.
                 return None
         return None
+
+    def get_original_price(self, obj):
+        try:
+            return str(obj.product.original_price)
+        except Exception:
+            return None
+
+    def get_offer_price(self, obj):
+        try:
+            value = obj.product.offer_price
+            return None if value is None else str(value)
+        except Exception:
+            return None
 
 
 

@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
+import logging
 
 
 from .models import Product, Category,Offer, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
@@ -24,6 +25,7 @@ from .serializers import (
     EnquirySerializer,
 )
 
+logger = logging.getLogger(__name__)
 
 def _parse_offer_price(raw_offer_price, original_price):
     if raw_offer_price in (None, ""):
@@ -440,8 +442,13 @@ def offer_list(request):
         is_active=True,
         product__is_active=True,
     ).order_by("display_order", "-created_at")
-    serializer = OfferSerializer(offers, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    payload = []
+    for offer in offers:
+        try:
+            payload.append(OfferSerializer(offer).data)
+        except Exception:
+            logger.exception("Skipping broken offer id=%s in public offer_list", offer.id)
+    return Response(payload, status=status.HTTP_200_OK)
 @api_view(["GET", "POST"])
 def seller_offer_list(request):
     guard = _ensure_seller(request)
