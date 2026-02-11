@@ -15,7 +15,7 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only=True
     )
     seller = serializers.PrimaryKeyRelatedField(read_only=True)
-    image = serializers.SerializerMethodField() 
+    image = serializers.ImageField(required=False, allow_null=True)
     has_offer = serializers.SerializerMethodField()
     discount_percentage = serializers.SerializerMethodField()
     selling_price = serializers.SerializerMethodField()
@@ -42,10 +42,11 @@ class ProductSerializer(serializers.ModelSerializer):
             "discount_percentage",
             "selling_price",
         ]
-    def get_image(self, obj):
-        if obj.image:
-            return obj.image.url   # ✅ Cloudinary FULL URL
-        return None
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            data["image"] = instance.image.url
+        return data
 
 
     def get_has_offer(self, obj):
