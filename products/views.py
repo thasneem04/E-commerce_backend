@@ -455,11 +455,10 @@ def offer_list(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 @api_view(["GET", "POST"])
 def seller_offer_list(request):
-    if not request.user.is_authenticated:
-        return Response(
-            {"detail": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    guard = _ensure_seller(request)
+    if guard:
+     return guard
+
 
     if request.method == "GET":
         offers = Offer.objects.all()
