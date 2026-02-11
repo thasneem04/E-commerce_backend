@@ -102,3 +102,32 @@ class OfferApiTests(TestCase):
 
         product.refresh_from_db()
         self.assertIsNone(product.offer_price)
+
+    def test_seller_offer_create_without_price_returns_400(self):
+        product = Product.objects.create(
+            seller=self.seller,
+            category=self.category,
+            name="Mixer",
+            original_price=900,
+            offer_price=None,
+            stock=3,
+            is_active=True,
+        )
+        self.client.force_login(self.seller)
+
+        response = self.client.post(
+            "/api/seller/offers/",
+            {
+                "title": "No Price Offer",
+                "subtitle": "Missing price",
+                "product": product.id,
+                "display_order": 1,
+                "offer_price": "",
+                "is_active": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get("detail"), "Offer price is required")
+        self.assertEqual(Offer.objects.count(), 0)

@@ -473,6 +473,11 @@ def seller_offer_list(request):
             )
 
         offer_price = request.data.get("offer_price")
+        if offer_price in (None, ""):
+            return Response(
+                {"detail": "Offer price is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         try:
             offer_price_val = _parse_offer_price(offer_price, product.original_price)
         except ValueError as exc:
@@ -489,9 +494,8 @@ def seller_offer_list(request):
                 display_order=request.data.get("display_order", 0),
                 is_active=request.data.get("is_active", True),
             )
-            if offer_price_val is not None:
-                product.offer_price = offer_price_val
-                product.save(update_fields=["offer_price"])
+            product.offer_price = offer_price_val
+            product.save(update_fields=["offer_price"])
 
         serializer = OfferSerializer(offer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -527,6 +531,11 @@ def seller_offer_detail(request, id):
                 )
 
         offer_price = request.data.get("offer_price")
+        if offer_price in (None, ""):
+            return Response(
+                {"detail": "Offer price is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         try:
             offer_price_val = _parse_offer_price(offer_price, offer.product.original_price)
         except ValueError as exc:
@@ -546,9 +555,8 @@ def seller_offer_detail(request, id):
                 offer.is_active = request.data.get("is_active", True)
             offer.save()
 
-            if offer_price_val is not None:
-                offer.product.offer_price = offer_price_val
-                offer.product.save(update_fields=["offer_price"])
+            offer.product.offer_price = offer_price_val
+            offer.product.save(update_fields=["offer_price"])
 
         serializer = OfferSerializer(offer)
         return Response(serializer.data, status=status.HTTP_200_OK)
