@@ -8,16 +8,20 @@ from .views import (
     category_list,
     offer_list,
     seller_offer_list,
-    seller_offer_detail
+    seller_offer_detail,
+    csrf_token_view
+    
 )
 from . import views
 
 
 urlpatterns = [
     # auth
+    path("csrf/", csrf_token_view),
     path("auth/login/", login_view),
     path("auth/logout/", logout_view),
     path("auth/me/", me_view),
+    
 
     # categories
     path("categories/", category_list),

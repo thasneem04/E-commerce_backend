@@ -3,12 +3,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import login, logout, authenticate
-from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
+from django.views.decorators.csrf import ensure_csrf_cookie
+
 
 from .models import Product, Category,Offer, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
 from .serializers import (
@@ -24,6 +25,11 @@ from .serializers import (
 
 
 # AUTH APIs (SESSION BASED)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def csrf_token_view(request):
+    return Response({"detail": "CSRF cookie set"})
 
 
 

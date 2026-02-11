@@ -83,13 +83,13 @@ FRONTEND_URL = os.getenv(
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
-    FRONTEND_URL,
+    "https://e-commerce-frontend-flax-chi.vercel.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    FRONTEND_URL,
+    "https://e-commerce-frontend-flax-chi.vercel.app",
 ]
 
 SESSION_COOKIE_SECURE = True
