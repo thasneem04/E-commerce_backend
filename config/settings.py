@@ -45,6 +45,8 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    "cloudinary",
+    "cloudinary_storage",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -57,9 +59,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     # 'rest_framework_simplejwt',
-    
+   
 ]
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+}
 # =========================
 # CORS & CSRF (SESSION AUTH)
 # =========================
@@ -240,4 +248,3 @@ WHITENOISE_MAX_AGE = 31536000  # cache static files for 1 year
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
