@@ -4,5 +4,11 @@ nixPkgs = ["python311", "gcc", "pkg-config", "mysqlclient"]
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
 
+[phases.build]
+cmds = [
+  "python manage.py migrate --noinput",
+  "python manage.py collectstatic --noinput"
+]
+
 [start]
 cmd = "gunicorn config.wsgi"
