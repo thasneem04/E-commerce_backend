@@ -349,11 +349,9 @@ def product_list(request):
 
     # PROTECTED
     if request.method == "POST":
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        guard = _ensure_seller(request)
+        if guard:
+            return guard
 
         data = request.data.copy()
         if "offer_price" in data and data.get("offer_price") in ("", None):
@@ -385,13 +383,11 @@ def product_detail(request, id):
     if request.method == "GET":
         serializer = ProductSerializer(product)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+    
     # PROTECTED
-    if not request.user.is_authenticated:
-        return Response(
-            {"detail": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    guard = _ensure_seller(request)
+    if guard:
+       return guard
 
     if request.method == "PUT":
         data = request.data.copy()
@@ -422,11 +418,10 @@ def product_detail(request, id):
         
 @api_view(["GET"])
 def inactive_product_list(request):
-    if not request.user.is_authenticated:
-        return Response(
-            {"detail": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    guard = _ensure_seller(request)
+    if guard:
+      return guard
+
 
     products = Product.objects.filter(is_active=False)
     serializer = ProductSerializer(products, many=True)
@@ -576,6 +571,16 @@ def seller_offer_detail(request, id):
     if request.method == "DELETE":
         offer.delete()
         return Response({"message": "Offer deleted"}, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+def seller_product_list(request):
+    guard = _ensure_seller(request)
+    if guard:
+        return guard
+
+    products = Product.objects.all()  # ALL PRODUCTS
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
 
 
 # CART APIs
