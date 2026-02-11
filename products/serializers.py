@@ -15,10 +15,11 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only=True
     )
     seller = serializers.PrimaryKeyRelatedField(read_only=True)
+    image = serializers.SerializerMethodField() 
     has_offer = serializers.SerializerMethodField()
     discount_percentage = serializers.SerializerMethodField()
     selling_price = serializers.SerializerMethodField()
-
+   
     class Meta:
         model = Product
         fields = [
@@ -41,6 +42,11 @@ class ProductSerializer(serializers.ModelSerializer):
             "discount_percentage",
             "selling_price",
         ]
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url   # ✅ Cloudinary FULL URL
+        return None
+
 
     def get_has_offer(self, obj):
         if obj.offer_price is None:
@@ -86,7 +92,7 @@ class OfferSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True
     )
-    image = serializers.ImageField(source="product.image", read_only=True)
+    image = serializers.ImageField()
 
     class Meta:
         model = Offer
@@ -102,6 +108,11 @@ class OfferSerializer(serializers.ModelSerializer):
             "display_order",
             "is_active",
         ]
+    def get_image(self, obj):
+        if obj.product and obj.product.image:
+            return obj.product.image.url
+        return None
+
 
 
 class CartItemSerializer(serializers.ModelSerializer):
