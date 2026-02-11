@@ -91,6 +91,7 @@ class OfferSerializer(serializers.ModelSerializer):
         source="product.offer_price",
         max_digits=10,
         decimal_places=2,
+        allow_null=True,
         read_only=True
     )
     

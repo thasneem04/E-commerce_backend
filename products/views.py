@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import login, logout, authenticate
 from django.db.models import Q
+from django.db import transaction
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
@@ -22,6 +23,21 @@ from .serializers import (
     OrderSerializer,
     EnquirySerializer,
 )
+
+
+def _parse_offer_price(raw_offer_price, original_price):
+    if raw_offer_price in (None, ""):
+        return None
+    try:
+        offer_price_val = float(raw_offer_price)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid offer price") from exc
+
+    if offer_price_val <= 0:
+        raise ValueError("Offer price must be greater than zero")
+    if offer_price_val >= float(original_price):
+        raise ValueError("Offer price must be less than original price")
+    return offer_price_val
 
 
 # AUTH APIs (SESSION BASED)
@@ -420,9 +436,10 @@ def related_products(request, category, id):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def offer_list(request):
-    offers = Offer.objects.filter(
+    offers = Offer.objects.select_related("product").filter(
         is_active=True,
-        product__is_active=True
+        product__is_active=True,
+        product__offer_price__isnull=False,
     ).order_by("display_order", "-created_at")
     serializer = OfferSerializer(offers, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -434,7 +451,7 @@ def seller_offer_list(request):
 
 
     if request.method == "GET":
-        offers = Offer.objects.all()
+        offers = Offer.objects.select_related("product").all()
         serializer = OfferSerializer(offers, many=True)
         return Response(serializer.data)
 
@@ -449,30 +466,26 @@ def seller_offer_list(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        offer = Offer.objects.create(
-            product=product,
-            title=request.data.get("title"),
-            subtitle=request.data.get("subtitle", ""),
-            display_order=request.data.get("display_order", 0),
-            is_active=request.data.get("is_active", True),
-        )
-
         offer_price = request.data.get("offer_price")
-        if offer_price not in (None, ""):
-            try:
-                offer_price_val = float(offer_price)
-                if offer_price_val >= float(product.original_price):
-                    return Response(
-                        {"detail": "Offer price must be less than original price"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+        try:
+            offer_price_val = _parse_offer_price(offer_price, product.original_price)
+        except ValueError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            offer = Offer.objects.create(
+                product=product,
+                title=request.data.get("title"),
+                subtitle=request.data.get("subtitle", ""),
+                display_order=request.data.get("display_order", 0),
+                is_active=request.data.get("is_active", True),
+            )
+            if offer_price_val is not None:
                 product.offer_price = offer_price_val
-                product.save()
-            except ValueError:
-                return Response(
-                    {"detail": "Invalid offer price"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                product.save(update_fields=["offer_price"])
 
         serializer = OfferSerializer(offer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -507,33 +520,29 @@ def seller_offer_detail(request, id):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        if "title" in request.data:
-            offer.title = request.data.get("title")
-        if "subtitle" in request.data:
-            offer.subtitle = request.data.get("subtitle", "")
-        if "display_order" in request.data:
-            offer.display_order = request.data.get("display_order", 0)
-        if "is_active" in request.data:
-            offer.is_active = request.data.get("is_active", True)
-
-        offer.save()
-
         offer_price = request.data.get("offer_price")
-        if offer_price not in (None, ""):
-            try:
-                offer_price_val = float(offer_price)
-                if offer_price_val >= float(offer.product.original_price):
-                    return Response(
-                        {"detail": "Offer price must be less than original price"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+        try:
+            offer_price_val = _parse_offer_price(offer_price, offer.product.original_price)
+        except ValueError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            if "title" in request.data:
+                offer.title = request.data.get("title")
+            if "subtitle" in request.data:
+                offer.subtitle = request.data.get("subtitle", "")
+            if "display_order" in request.data:
+                offer.display_order = request.data.get("display_order", 0)
+            if "is_active" in request.data:
+                offer.is_active = request.data.get("is_active", True)
+            offer.save()
+
+            if offer_price_val is not None:
                 offer.product.offer_price = offer_price_val
-                offer.product.save()
-            except ValueError:
-                return Response(
-                    {"detail": "Invalid offer price"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                offer.product.save(update_fields=["offer_price"])
 
         serializer = OfferSerializer(offer)
         return Response(serializer.data, status=status.HTTP_200_OK)
