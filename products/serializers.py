@@ -92,7 +92,8 @@ class OfferSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True
     )
-    image = serializers.ImageField()
+    
+    image = serializers.SerializerMethodField() 
 
     class Meta:
         model = Offer
