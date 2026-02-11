@@ -6,8 +6,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.conf import settings
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 
@@ -29,7 +29,7 @@ from .serializers import (
 @permission_classes([AllowAny])
 @ensure_csrf_cookie
 def csrf_token_view(request):
-    return Response({"detail": "CSRF cookie set"})
+    return Response({"csrfToken": get_token(request)})
 
 
 
@@ -66,25 +66,10 @@ def login_view(request):
         )
 
     login(request, user)  # creates sessionid cookie
-    request.session["is_seller"] = True
-
-    refresh = RefreshToken.for_user(user)
-    access_token = str(refresh.access_token)
-
-    response = Response(
+    return Response(
         {"message": "Login successful"},
         status=status.HTTP_200_OK
     )
-    response.set_cookie(
-       "access_token",
-       access_token,
-       httponly=True,
-       secure=True,
-       samesite="None",
-       max_age=60 * 60 * 24,
-       path="/",
-    )
-    return response
 
 
 
@@ -92,12 +77,10 @@ def login_view(request):
 @permission_classes([AllowAny])
 def logout_view(request):
     logout(request)
-    response = Response(
+    return Response(
         {"message": "Logout successful"},
         status=status.HTTP_200_OK
     )
-    response.delete_cookie("access_token", path="/")
-    return response
     
 
 
@@ -194,10 +177,8 @@ def customer_login(request):
         )
 
     login(request, user)
-    refresh = RefreshToken.for_user(user)
-    access_token = str(refresh.access_token)
-
-    response = Response(
+    request.session.pop("is_seller", None)
+    return Response(
         {
             "message": "Login successful",
             "user": {
@@ -208,30 +189,16 @@ def customer_login(request):
         status=status.HTTP_200_OK
     )
 
-    response.set_cookie(
-      getattr(settings, "JWT_COOKIE_NAME", "access_token"),
-      access_token,
-      httponly=True,
-      secure=True,
-      samesite="None",
-      max_age=getattr(settings, "JWT_COOKIE_AGE_SECONDS", 60 * 60 * 24),
-      path="/",
-    )
-
-    return response
-
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def customer_logout(request):
     logout(request)
-    response = Response(
+    return Response(
         {"message": "Logout successful"},
         status=status.HTTP_200_OK
     )
-    response.delete_cookie("access_token", path="/")
-    return response
 
 
 @api_view(["GET"])
@@ -513,11 +480,9 @@ def seller_offer_list(request):
 
 @api_view(["GET", "PUT", "DELETE"])
 def seller_offer_detail(request, id):
-    if not request.user.is_authenticated:
-        return Response(
-            {"detail": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    guard = _ensure_seller(request)
+    if guard:
+        return guard
 
     try:
         offer = Offer.objects.get(id=id)
@@ -948,7 +913,6 @@ def _ensure_seller(request):
         request.user.is_staff
         or request.user.is_superuser
         or request.user.username in allowed_usernames
-        or request.session.get("is_seller") is True
     ):
         return Response(
             {"detail": "Seller access required"},
