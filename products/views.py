@@ -423,7 +423,7 @@ def offer_list(request):
     offers = Offer.objects.filter(
         is_active=True,
         product__is_active=True
-    )
+    ).order_by("display_order", "-created_at")
     serializer = OfferSerializer(offers, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 @api_view(["GET", "POST"])
