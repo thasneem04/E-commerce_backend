@@ -113,7 +113,11 @@ class OfferSerializer(serializers.ModelSerializer):
         ]
     def get_image(self, obj):
         if obj.product and obj.product.image:
-            return obj.product.image.url
+            try:
+                return obj.product.image.url
+            except Exception:
+                # Do not fail the whole offers API because of one broken image reference.
+                return None
         return None
 
 
