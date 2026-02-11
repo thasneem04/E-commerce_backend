@@ -8,6 +8,6 @@ mysqlclient
 python-dotenv
 Pillow
 cloudinary
-django-cloudinary-storag
+django-cloudinary-storage
 
 
