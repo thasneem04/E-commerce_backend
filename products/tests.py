@@ -15,7 +15,7 @@ class OfferApiTests(TestCase):
         )
         self.category = Category.objects.create(name="Cloth")
 
-    def test_public_offers_returns_only_active_with_active_product_and_price(self):
+    def test_public_offers_returns_only_active_with_active_product(self):
         active_product = Product.objects.create(
             seller=self.seller,
             category=self.category,
@@ -49,6 +49,11 @@ class OfferApiTests(TestCase):
             title="Mega Sale",
             is_active=True,
         )
+        no_price_visible_offer = Offer.objects.create(
+            product=no_price_product,
+            title="Visible Without Discount",
+            is_active=True,
+        )
         Offer.objects.create(
             product=active_product,
             title="Inactive Offer",
@@ -59,18 +64,13 @@ class OfferApiTests(TestCase):
             title="Hidden Product Offer",
             is_active=True,
         )
-        Offer.objects.create(
-            product=no_price_product,
-            title="No Price Offer",
-            is_active=True,
-        )
-
         response = self.client.get("/api/offers/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], visible_offer.id)
-        self.assertEqual(response.data[0]["product_name"], "Shirt")
+        self.assertEqual(len(response.data), 2)
+        returned_ids = {item["id"] for item in response.data}
+        self.assertIn(visible_offer.id, returned_ids)
+        self.assertIn(no_price_visible_offer.id, returned_ids)
 
     def test_seller_offer_create_invalid_price_returns_400_without_creating_offer(self):
         product = Product.objects.create(

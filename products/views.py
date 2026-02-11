@@ -439,7 +439,6 @@ def offer_list(request):
     offers = Offer.objects.select_related("product").filter(
         is_active=True,
         product__is_active=True,
-        product__offer_price__isnull=False,
     ).order_by("display_order", "-created_at")
     serializer = OfferSerializer(offers, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
