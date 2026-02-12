@@ -291,6 +291,15 @@ def _ensure_profile_complete(request):
     return None
 
 
+def _ensure_authenticated(request):
+    if not request.user.is_authenticated:
+        return Response(
+            {"detail": "Authentication required"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    return None
+
+
 
 
 # CATEGORY APIs (READ)
@@ -580,7 +589,7 @@ def seller_product_list(request):
 
 @api_view(["GET"])
 def cart_list(request):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -593,7 +602,7 @@ def cart_list(request):
 
 @api_view(["POST"])
 def cart_add(request):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -632,7 +641,7 @@ def cart_add(request):
 
 @api_view(["PUT"])
 def cart_update(request):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -667,7 +676,7 @@ def cart_update(request):
 
 @api_view(["DELETE"])
 def cart_remove(request, product_id):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -679,7 +688,7 @@ def cart_remove(request, product_id):
 
 @api_view(["GET"])
 def wishlist_list(request):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -692,7 +701,7 @@ def wishlist_list(request):
 
 @api_view(["POST"])
 def wishlist_add(request):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -716,7 +725,7 @@ def wishlist_add(request):
 
 @api_view(["DELETE"])
 def wishlist_remove(request, product_id):
-    guard = _ensure_profile_complete(request)
+    guard = _ensure_authenticated(request)
     if guard:
         return guard
 
@@ -728,11 +737,9 @@ def wishlist_remove(request, product_id):
 
 @api_view(["POST"])
 def buy_now_order(request):
-    if not request.user.is_authenticated:
-        return Response(
-            {"detail": "Authentication required"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    guard = _ensure_profile_complete(request)
+    if guard:
+        return guard
 
     product_id = request.data.get("product_id")
     quantity = request.data.get("quantity", 1)
