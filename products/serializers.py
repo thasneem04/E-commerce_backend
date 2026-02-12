@@ -1,6 +1,7 @@
 import json
 
 from rest_framework import serializers
+from django.db import DatabaseError
 from .models import Product, Category, Offer, ProductSizeVariant, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
 from django.utils import timezone
 from datetime import timedelta
@@ -72,7 +73,7 @@ class ProductSerializer(serializers.ModelSerializer):
     has_offer = serializers.SerializerMethodField()
     discount_percentage = serializers.SerializerMethodField()
     selling_price = serializers.SerializerMethodField()
-    size_variants = ProductSizeVariantSerializer(many=True, read_only=True)
+    size_variants = serializers.SerializerMethodField()
     size_variants_payload = serializers.JSONField(write_only=True, required=False)
    
     class Meta:
@@ -255,6 +256,17 @@ class ProductSerializer(serializers.ModelSerializer):
         if instance.image:
             data["image"] = instance.image.url
         return data
+
+    def get_size_variants(self, obj):
+        # Backward-compatible: if migration is not yet applied in an environment,
+        # do not break product listing; just return no variants.
+        try:
+            rows = obj.size_variants.all().order_by("display_order", "id")
+            return ProductSizeVariantSerializer(rows, many=True).data
+        except DatabaseError:
+            return []
+        except Exception:
+            return []
 
 
     def get_has_offer(self, obj):

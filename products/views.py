@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import login, logout, authenticate
 from django.db.models import Q
-from django.db import transaction
+from django.db import transaction, DatabaseError
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
@@ -593,11 +593,14 @@ def cart_list(request):
     if guard:
         return guard
 
-    items = CartItem.objects.filter(user=request.user).select_related(
-        "product", "product__category", "size_variant"
-    )
-    serializer = CartItemSerializer(items, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    try:
+        items = CartItem.objects.filter(user=request.user).select_related(
+            "product", "product__category", "size_variant"
+        )
+        serializer = CartItemSerializer(items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except DatabaseError:
+        return Response([], status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
