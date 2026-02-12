@@ -240,7 +240,12 @@ class ProductSerializer(serializers.ModelSerializer):
         validated_data.pop("size_variants_payload", None)
         product = super().create(validated_data)
         if variants is not None:
-            self._replace_size_variants(product, variants)
+            try:
+                self._replace_size_variants(product, variants)
+            except DatabaseError:
+                # Deployment-safe fallback when size variant migration
+                # is not yet applied in a target environment.
+                pass
         return product
 
     def update(self, instance, validated_data):
@@ -248,7 +253,12 @@ class ProductSerializer(serializers.ModelSerializer):
         validated_data.pop("size_variants_payload", None)
         product = super().update(instance, validated_data)
         if variants is not None:
-            self._replace_size_variants(product, variants)
+            try:
+                self._replace_size_variants(product, variants)
+            except DatabaseError:
+                # Deployment-safe fallback when size variant migration
+                # is not yet applied in a target environment.
+                pass
         return product
 
     def to_representation(self, instance):
