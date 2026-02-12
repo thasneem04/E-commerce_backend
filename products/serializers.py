@@ -243,9 +243,9 @@ class ProductSerializer(serializers.ModelSerializer):
             try:
                 self._replace_size_variants(product, variants)
             except DatabaseError:
-                # Deployment-safe fallback when size variant migration
-                # is not yet applied in a target environment.
-                pass
+                raise serializers.ValidationError(
+                    {"size_variants": "Failed to save size variants. Please run latest migrations and try again."}
+                )
         return product
 
     def update(self, instance, validated_data):
@@ -256,9 +256,9 @@ class ProductSerializer(serializers.ModelSerializer):
             try:
                 self._replace_size_variants(product, variants)
             except DatabaseError:
-                # Deployment-safe fallback when size variant migration
-                # is not yet applied in a target environment.
-                pass
+                raise serializers.ValidationError(
+                    {"size_variants": "Failed to save size variants. Please run latest migrations and try again."}
+                )
         return product
 
     def to_representation(self, instance):
