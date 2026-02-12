@@ -13,7 +13,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 import logging
 
 
-from .models import Product, Category,Offer, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
+from .models import Product, Category, Offer, ProductSizeVariant, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
 from .serializers import (
     ProductSerializer,
     CategorySerializer,
@@ -594,7 +594,7 @@ def cart_list(request):
         return guard
 
     items = CartItem.objects.filter(user=request.user).select_related(
-        "product", "product__category"
+        "product", "product__category", "size_variant"
     )
     serializer = CartItemSerializer(items, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -607,6 +607,7 @@ def cart_add(request):
         return guard
 
     product_id = request.data.get("product_id") or request.data.get("product")
+    size_variant_id = request.data.get("size_variant_id") or request.data.get("size_variant")
     quantity = request.data.get("quantity", 1)
 
     try:
@@ -625,9 +626,24 @@ def cart_add(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    size_variant = None
+    if size_variant_id not in (None, ""):
+        try:
+            size_variant = ProductSizeVariant.objects.get(
+                id=size_variant_id,
+                product=product,
+                is_active=True
+            )
+        except ProductSizeVariant.DoesNotExist:
+            return Response(
+                {"detail": "Invalid size variant"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     item, created = CartItem.objects.get_or_create(
         user=request.user,
         product=product,
+        size_variant=size_variant,
         defaults={"quantity": quantity}
     )
 
@@ -646,6 +662,7 @@ def cart_update(request):
         return guard
 
     product_id = request.data.get("product_id") or request.data.get("product")
+    size_variant_id = request.data.get("size_variant_id") or request.data.get("size_variant")
     quantity = request.data.get("quantity")
 
     try:
@@ -656,9 +673,14 @@ def cart_update(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    try:
-        item = CartItem.objects.get(user=request.user, product_id=product_id)
-    except CartItem.DoesNotExist:
+    items = CartItem.objects.filter(user=request.user, product_id=product_id)
+    if size_variant_id not in (None, ""):
+        items = items.filter(size_variant_id=size_variant_id)
+    else:
+        items = items.filter(size_variant__isnull=True)
+
+    item = items.first()
+    if item is None:
         return Response(
             {"detail": "Item not found"},
             status=status.HTTP_404_NOT_FOUND
@@ -680,7 +702,15 @@ def cart_remove(request, product_id):
     if guard:
         return guard
 
-    CartItem.objects.filter(user=request.user, product_id=product_id).delete()
+    size_variant_id = request.query_params.get("size_variant_id")
+    items = CartItem.objects.filter(user=request.user, product_id=product_id)
+    if size_variant_id not in (None, ""):
+        items = items.filter(size_variant_id=size_variant_id)
+    else:
+        default_items = items.filter(size_variant__isnull=True)
+        if default_items.exists():
+            items = default_items
+    items.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -742,6 +772,7 @@ def buy_now_order(request):
         return guard
 
     product_id = request.data.get("product_id")
+    size_variant_id = request.data.get("size_variant_id")
     quantity = request.data.get("quantity", 1)
     full_name = request.data.get("full_name")
     phone = request.data.get("phone")
@@ -773,7 +804,30 @@ def buy_now_order(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    selling_price = product.offer_price if product.offer_price and product.offer_price < product.original_price else product.original_price
+    size_variant = None
+    if size_variant_id not in (None, ""):
+        try:
+            size_variant = ProductSizeVariant.objects.get(
+                id=size_variant_id,
+                product=product,
+                is_active=True
+            )
+        except ProductSizeVariant.DoesNotExist:
+            return Response(
+                {"detail": "Invalid size variant"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    if size_variant is not None:
+        has_offer = (
+            size_variant.offer_price is not None
+            and size_variant.offer_price < size_variant.original_price
+        )
+        selling_price = size_variant.offer_price if has_offer else size_variant.original_price
+    else:
+        has_offer = product.offer_price is not None and product.offer_price < product.original_price
+        selling_price = product.offer_price if has_offer else product.original_price
+
     total_amount = selling_price * quantity
     full_address = address1 if not address2 else f"{address1}, {address2}"
 
@@ -792,6 +846,8 @@ def buy_now_order(request):
     OrderItem.objects.create(
         order=order,
         product=product,
+        size_variant=size_variant,
+        size_label=size_variant.size_label if size_variant else "",
         quantity=quantity,
         price=selling_price,
     )
@@ -821,7 +877,7 @@ def order_from_cart(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    cart_items = CartItem.objects.filter(user=request.user).select_related("product")
+    cart_items = CartItem.objects.filter(user=request.user).select_related("product", "size_variant")
     if not cart_items.exists():
         return Response(
             {"detail": "Cart is empty"},
@@ -844,16 +900,28 @@ def order_from_cart(request):
 
     for item in cart_items:
         product = item.product
-        selling_price = (
-            product.offer_price
-            if product.offer_price and product.offer_price < product.original_price
-            else product.original_price
-        )
+        size_variant = item.size_variant
+        if size_variant is not None:
+            has_offer = (
+                size_variant.offer_price is not None
+                and size_variant.offer_price < size_variant.original_price
+            )
+            selling_price = size_variant.offer_price if has_offer else size_variant.original_price
+            size_label = size_variant.size_label
+        else:
+            has_offer = (
+                product.offer_price is not None
+                and product.offer_price < product.original_price
+            )
+            selling_price = product.offer_price if has_offer else product.original_price
+            size_label = ""
         line_total = selling_price * item.quantity
         total_amount += line_total
         OrderItem.objects.create(
             order=order,
             product=product,
+            size_variant=size_variant,
+            size_label=size_label,
             quantity=item.quantity,
             price=selling_price,
         )
@@ -997,6 +1065,7 @@ def seller_order_list(request):
             "product_name": item.product.name,
             "category_name": item.product.category.name if item.product.category else "",
             "image": item.product.image.url if item.product.image else "",
+            "size_label": item.size_label or (item.size_variant.size_label if item.size_variant else ""),
             "quantity": item.quantity,
             "price": item.price,
             "line_total": item.price * item.quantity,

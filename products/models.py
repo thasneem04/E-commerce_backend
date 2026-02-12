@@ -88,6 +88,38 @@ class Product(models.Model):
         return self.name
 
 
+class ProductSizeVariant(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="size_variants"
+    )
+    size_label = models.CharField(max_length=40)
+    original_price = models.DecimalField(max_digits=10, decimal_places=2)
+    offer_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    stock = models.PositiveIntegerField(default=0)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        unique_together = ("product", "size_label")
+
+    def save(self, *args, **kwargs):
+        self.size_label = (self.size_label or "").strip()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.size_label}"
+
+
 class Offer(models.Model):
     product = models.ForeignKey(
         Product,
@@ -118,12 +150,19 @@ class CartItem(models.Model):
         related_name="cart_items"
     )
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    size_variant = models.ForeignKey(
+        ProductSizeVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cart_items"
+    )
     quantity = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("user", "product")
+        unique_together = ("user", "product", "size_variant")
         ordering = ["-updated_at"]
 
     def __str__(self):
@@ -219,6 +258,14 @@ class OrderItem(models.Model):
         related_name="items"
     )
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    size_variant = models.ForeignKey(
+        ProductSizeVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_items"
+    )
+    size_label = models.CharField(max_length=40, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
