@@ -13,7 +13,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 import logging
 
 
-from .models import Product, Category, Offer, ProductSizeVariant, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
+from .models import Product, ProductImage, Category, Offer, ProductSizeVariant, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
 from .serializers import (
     ProductSerializer,
     CategorySerializer,
@@ -26,6 +26,36 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _extract_upload_images(request):
+    files = []
+    try:
+        if "images" in request.FILES:
+            files.extend(request.FILES.getlist("images"))
+        if "image" in request.FILES:
+            files.extend(request.FILES.getlist("image"))
+    except Exception:
+        return []
+    return files
+
+
+def _save_product_images(product, files, replace=False):
+    if not files:
+        return
+    if replace:
+        product.images.all().delete()
+    start = product.images.count()
+    ProductImage.objects.bulk_create(
+        [
+            ProductImage(
+                product=product,
+                image=file_obj,
+                display_order=start + index,
+            )
+            for index, file_obj in enumerate(files)
+        ]
+    )
+
 
 def _parse_offer_price(raw_offer_price, original_price):
     if raw_offer_price in (None, ""):
@@ -354,12 +384,23 @@ def product_list(request):
             return guard
 
         data = request.data.copy()
+        upload_files = _extract_upload_images(request)
+        main_image = request.FILES.get("image") or (upload_files[0] if upload_files else None)
+        if main_image:
+            data["image"] = main_image
         if "offer_price" in data and data.get("offer_price") in ("", None):
             data["offer_price"] = None
 
         serializer = ProductSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(seller=request.user)
+            product = serializer.save(seller=request.user)
+            extra_files = list(upload_files)
+            if main_image:
+                try:
+                    extra_files.remove(main_image)
+                except ValueError:
+                    pass
+            _save_product_images(product, extra_files, replace=False)
             return Response(
                 {"message": "Product created", "data": serializer.data},
                 status=status.HTTP_201_CREATED
@@ -391,6 +432,10 @@ def product_detail(request, id):
 
     if request.method == "PUT":
         data = request.data.copy()
+        upload_files = _extract_upload_images(request)
+        main_image = request.FILES.get("image") or (upload_files[0] if upload_files else None)
+        if main_image:
+            data["image"] = main_image
         if "offer_price" in data and data.get("offer_price") in ("", None):
             data["offer_price"] = None
 
@@ -399,9 +444,19 @@ def product_detail(request, id):
         )
         if serializer.is_valid():
             if product.seller is None:
-                serializer.save(seller=request.user)
+                saved = serializer.save(seller=request.user)
             else:
-                serializer.save()
+                saved = serializer.save()
+            replace_images = str(request.data.get("replace_images", "")).lower() in ("1", "true", "yes")
+            extra_files = list(upload_files)
+            if main_image:
+                try:
+                    extra_files.remove(main_image)
+                except ValueError:
+                    pass
+            if replace_images and not extra_files:
+                saved.images.all().delete()
+            _save_product_images(saved, extra_files, replace=replace_images)
             return Response(
                 {"message": "Product updated", "data": serializer.data},
                 status=status.HTTP_200_OK

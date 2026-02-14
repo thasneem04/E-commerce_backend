@@ -2,7 +2,7 @@ import json
 
 from rest_framework import serializers
 from django.db import DatabaseError
-from .models import Product, Category, Offer, ProductSizeVariant, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
+from .models import Product, ProductImage, Category, Offer, ProductSizeVariant, CartItem, WishlistItem, CustomerProfile, Order, OrderItem, Enquiry
 from django.utils import timezone
 from datetime import timedelta
 
@@ -63,6 +63,18 @@ class ProductSizeVariantSerializer(serializers.ModelSerializer):
         return obj.original_price
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ["id", "image", "display_order"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            data["image"] = instance.image.url
+        return data
+
+
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source="category.name",
@@ -74,6 +86,7 @@ class ProductSerializer(serializers.ModelSerializer):
     discount_percentage = serializers.SerializerMethodField()
     selling_price = serializers.SerializerMethodField()
     size_variants = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
     size_variants_payload = serializers.JSONField(write_only=True, required=False)
    
     class Meta:
@@ -98,6 +111,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "discount_percentage",
             "selling_price",
             "size_variants",
+            "images",
             "size_variants_payload",
         ]
 
@@ -266,6 +280,32 @@ class ProductSerializer(serializers.ModelSerializer):
         if instance.image:
             data["image"] = instance.image.url
         return data
+
+    def get_images(self, obj):
+        items = []
+        if obj.image:
+            try:
+                items.append(obj.image.url)
+            except Exception:
+                pass
+        try:
+            extra = obj.images.all().order_by("display_order", "id")
+            for row in extra:
+                try:
+                    items.append(row.image.url)
+                except Exception:
+                    continue
+        except Exception:
+            return items
+
+        seen = set()
+        deduped = []
+        for path in items:
+            if path in seen:
+                continue
+            seen.add(path)
+            deduped.append(path)
+        return deduped
 
     def get_size_variants(self, obj):
         # Backward-compatible: if migration is not yet applied in an environment,
