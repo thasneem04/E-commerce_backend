@@ -30,6 +30,7 @@ urlpatterns = [
     # products
     path("products/", product_list, name="products"),
     path("products/<int:id>/", product_detail, name="product-detail"),
+    path("products/images/<int:id>/", views.product_image_delete, name="product-image-delete"),
     path("products/related/<str:category>/<int:id>/", views.related_products, name="products-related"),
     path("products/inactive/", views.inactive_product_list, name="products-inactive"),
     path("offers/", offer_list, name="offers-public"),                 # public

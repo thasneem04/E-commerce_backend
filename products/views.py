@@ -1077,6 +1077,37 @@ def _ensure_seller(request):
     return None
 
 
+@api_view(["DELETE"])
+def product_image_delete(request, id):
+    guard = _ensure_seller(request)
+    if guard:
+        return guard
+
+    try:
+        image = ProductImage.objects.select_related("product", "product__seller").get(id=id)
+    except ProductImage.DoesNotExist:
+        return Response(
+            {"detail": "Image not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    allowed_usernames = set(getattr(settings, "SELLER_USERNAMES", []))
+    is_seller_admin = (
+        request.user.is_staff
+        or request.user.is_superuser
+        or request.user.username in allowed_usernames
+    )
+    owner = image.product.seller
+    if not is_seller_admin and owner not in (None, request.user):
+        return Response(
+            {"detail": "Seller access required"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    image.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 @api_view(["GET"])
 def seller_order_list(request):
     guard = _ensure_seller(request)

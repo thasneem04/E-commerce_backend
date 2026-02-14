@@ -87,6 +87,7 @@ class ProductSerializer(serializers.ModelSerializer):
     selling_price = serializers.SerializerMethodField()
     size_variants = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    extra_images = serializers.SerializerMethodField()
     size_variants_payload = serializers.JSONField(write_only=True, required=False)
    
     class Meta:
@@ -112,6 +113,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "selling_price",
             "size_variants",
             "images",
+            "extra_images",
             "size_variants_payload",
         ]
 
@@ -306,6 +308,13 @@ class ProductSerializer(serializers.ModelSerializer):
             seen.add(path)
             deduped.append(path)
         return deduped
+
+    def get_extra_images(self, obj):
+        try:
+            rows = obj.images.all().order_by("display_order", "id")
+            return ProductImageSerializer(rows, many=True).data
+        except Exception:
+            return []
 
     def get_size_variants(self, obj):
         # Backward-compatible: if migration is not yet applied in an environment,
