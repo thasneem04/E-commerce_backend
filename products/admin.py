@@ -91,9 +91,6 @@ class ProductAdmin(admin.ModelAdmin):
     status_badge.short_description = "Status"
 
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-    
     def save_model(self, request, obj, form, change):
         if obj.offer_price and obj.offer_price >= obj.original_price:
            obj.offer_price = None
